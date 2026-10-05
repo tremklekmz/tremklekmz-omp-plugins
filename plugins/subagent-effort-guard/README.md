@@ -4,6 +4,8 @@ A small OMP plugin that approves **real, resolved subagent reasoning effort** be
 
 The default policy is `mode=auto`, `maxAutonomousEffort=parent`, `debug=false`: children may run autonomously up to their immediate parent's current effort; higher effort needs approval. The integration was investigated against OMP **18.6.1** and the pinned source below. This document is a verification procedure, not a claim that every scenario has been exercised.
 
+See the [changelog](CHANGELOG.md) for this plugin's release history.
+
 ## Install with a normal OMP binary
 
 Once the marketplace is published as `tremklekmz/tremklekmz-omp-plugins`, run these commands from any directory. OMP fetches and caches the repository; no manual clone is required.

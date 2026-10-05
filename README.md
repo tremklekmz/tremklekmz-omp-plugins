@@ -2,6 +2,8 @@
 
 A plugin marketplace for [oh-my-pi](https://github.com/can1357/oh-my-pi). Plugins run on a normal OMP binary; no fork or rebuild is required.
 
+Each plugin maintains its own version and changelog; see the [plugin list](#plugins) for release histories.
+
 ## Install from GitHub
 
 Once this repository is published as `tremklekmz/tremklekmz-omp-plugins`, run these commands from any directory. OMP fetches and caches the marketplace; no manual clone is needed.
@@ -24,9 +26,9 @@ The same full restart is required after `plugin link`; linking does not activate
 
 ## Plugins
 
-| Plugin | Purpose |
-| --- | --- |
-| [subagent-effort-guard](plugins/subagent-effort-guard/README.md) | Approve reasoning escalations using the child's actual resolved effort and the immediate parent's live effort. Defaults to `auto` with a `parent` autonomous limit. |
+| Plugin | Purpose | Changelog |
+| --- | --- | --- |
+| [subagent-effort-guard](plugins/subagent-effort-guard/README.md) | Approve reasoning escalations using the child's actual resolved effort and the immediate parent's live effort. Defaults to `auto` with a `parent` autonomous limit. | [Releases](plugins/subagent-effort-guard/CHANGELOG.md) |
 
 ## Configuration
 
@@ -41,9 +43,9 @@ Restart OMP after changing plugin settings. See the [plugin guide](plugins/subag
 
 To add another plugin:
 
-1. Add a directory under `plugins/` with a `package.json` declaring `omp.extensions` and, if needed, native `omp.settings`.
+1. Add a directory under `plugins/` with a `package.json` declaring `omp.extensions` and, if needed, native `omp.settings`, plus a `CHANGELOG.md` for that plugin's releases.
 2. Add a unique catalog entry in `.omp-plugin/marketplace.json`. `metadata.pluginRoot` is `plugins`, so `source` is relative to that directory.
-3. Bump the plugin and catalog versions when publishing an update.
+3. When releasing a plugin update, bump its `package.json` version and matching catalog entry's `version` together. Catalog entry versions enable bulk upgrade checks; no marketplace-wide version is needed. Record changes in the plugin's changelog under `Unreleased`, then move them to a versioned section on release.
 4. Refresh the catalog with `omp plugin marketplace update tremklekmz-omp-plugins`, then install updates with `omp plugin upgrade`.
 
 ## Development

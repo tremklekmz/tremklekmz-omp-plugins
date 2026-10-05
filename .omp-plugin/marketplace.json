@@ -6,7 +6,6 @@
   },
   "metadata": {
     "description": "Focused personal extensions for oh-my-pi",
-    "version": "1.0.0",
     "pluginRoot": "plugins"
   },
   "plugins": [
