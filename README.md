@@ -37,9 +37,7 @@ omp plugin config set subagent-effort-guard maxAutonomousEffort parent
 
 Restart OMP after changing plugin settings. See the [plugin guide](plugins/subagent-effort-guard/README.md) for approval actions, project overrides, headless behavior, verified lifecycle, and test procedure.
 
-## Publish and extend
-
-Publish this checkout to GitHub as `tremklekmz/tremklekmz-omp-plugins` to make the hosted installation commands available. If you choose a different repository name, update the marketplace source in both READMEs. The catalog name in `.omp-plugin/marketplace.json` remains `tremklekmz-omp-plugins`.
+## Extend
 
 To add another plugin:
 
