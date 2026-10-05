@@ -1,0 +1,28 @@
+{
+  "name": "subagent-effort-guard",
+  "version": "1.0.0",
+  "description": "Approve subagent reasoning escalations before the first provider request.",
+  "type": "module",
+  "omp": {
+    "extensions": ["./index.ts"],
+    "settings": {
+      "mode": {
+        "type": "enum",
+        "values": ["off", "auto", "always"],
+        "default": "auto",
+        "description": "Disable the guard, approve escalations only, or approve every subagent."
+      },
+      "maxAutonomousEffort": {
+        "type": "enum",
+        "values": ["parent", "none", "minimal", "low", "medium", "high", "xhigh", "max"],
+        "default": "parent",
+        "description": "Maximum real effort allowed without approval; parent uses the immediate parent's live effort."
+      },
+      "debug": {
+        "type": "boolean",
+        "default": false,
+        "description": "Write agent IDs, model, effort limits, and decisions to OMP's debug log."
+      }
+    }
+  }
+}

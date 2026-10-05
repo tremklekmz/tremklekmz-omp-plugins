@@ -1,0 +1,11 @@
+{
+  "name": "personal-omp-plugin-marketplace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@oh-my-pi/pi-catalog": "18.6.1"
+  }
+}

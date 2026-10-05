@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tremklekmz-omp-plugins",
+  "owner": {
+    "name": "tremklekmz"
+  },
+  "metadata": {
+    "description": "Focused personal extensions for oh-my-pi",
+    "version": "1.0.0",
+    "pluginRoot": "plugins"
+  },
+  "plugins": [
+    {
+      "name": "subagent-effort-guard",
+      "description": "Approve real subagent reasoning escalations before provider dispatch",
+      "version": "1.0.0",
+      "source": "./subagent-effort-guard",
+      "category": "development",
+      "keywords": ["extension", "subagents", "reasoning", "approval"]
+    }
+  ]
+}
