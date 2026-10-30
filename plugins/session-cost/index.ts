@@ -73,7 +73,7 @@ class CostView implements Component {
 
   handleInput(data: string): void {
     const frame = this.#frame;
-    const last = frame.page.rows.length - 1;
+    const last = Math.max(0, frame.page.rows.length - 1);
     const page = this.#rowCapacity();
     if (this.keybindings.matches(data, "app.interrupt") || matchesKey(data, "q")) {
       this.done();

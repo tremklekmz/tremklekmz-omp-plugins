@@ -20,7 +20,7 @@
     {
       "name": "session-cost",
       "description": "Break down session spend by main chat, turns, calls, subagents, and advisors",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "source": "./session-cost",
       "category": "development",
       "keywords": ["extension", "cost", "usage", "subagents"]

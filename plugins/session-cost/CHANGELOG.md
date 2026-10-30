@@ -4,6 +4,12 @@ Release history for `session-cost`. Versions match this plugin's `package.json` 
 
 ## Unreleased
 
+## 1.0.2
+
+### Fixed
+
+- Navigating empty `/cost` pages with Down or Page Down no longer crashes in ordinary terminals.
+
 ## 1.0.1
 
 ### Fixed
