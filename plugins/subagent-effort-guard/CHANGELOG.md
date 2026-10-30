@@ -4,8 +4,6 @@ Release history for `subagent-effort-guard`. Versions match this plugin's `packa
 
 ## Unreleased
 
-### Added
-- Documented the 1.0.0 release features for subagent effort approval and policy settings
 ## 1.0.0
 
 ### Added
