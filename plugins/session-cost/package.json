@@ -1,6 +1,6 @@
 {
   "name": "session-cost",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Break down session spend by main chat, turns, calls, subagents, and advisors.",
   "type": "module",
   "omp": {

@@ -4,6 +4,14 @@ Release history for `session-cost`. Versions match this plugin's `package.json` 
 
 ## Unreleased
 
+## 1.0.1
+
+### Fixed
+
+- `/cost` opens a native, clickable dialog in Tern instead of showing terminal fallback rows in the editor area.
+
+## 1.0.0
+
 ### Added
 
 - `/cost` command that breaks session spend down by main chat, prompt turns, individual model calls, subagents (nested included), and advisors.

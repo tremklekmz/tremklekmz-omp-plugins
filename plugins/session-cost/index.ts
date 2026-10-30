@@ -2,6 +2,12 @@ import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@oh-my-pi/pi-coding-agent";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
 import {
+  col,
+  item,
+  list,
+  type NativeNode,
+  type NativeUiEvent,
+  text,
   type Component,
   type KeybindingsManager,
   matchesKey,
@@ -10,6 +16,7 @@ import {
   truncateToWidth,
   visibleWidth,
 } from "@oh-my-pi/pi-tui";
+import { actionBar, actionButton, itemIndex } from "@oh-my-pi/pi-tui/native/overlay";
 import { buildReport, type CostReport } from "./report";
 import { loadTranscripts } from "./transcripts";
 import { formatCost, type Page, rootPage, textSummary } from "./view";
@@ -37,13 +44,16 @@ async function collectReport(ctx: ExtensionCommandContext): Promise<CostReport> 
 }
 
 interface Frame {
+  key: string;
   page: Page;
   selected: number;
   offset: number;
 }
 
 class CostView implements Component {
+  readonly nativeOverlay = { role: "omp.overlay.session-cost", head: "Session cost", size: "lg" } as const;
   #stack: Frame[];
+  #pageSequence = 0;
   #notice: string | undefined;
 
   constructor(
@@ -54,7 +64,7 @@ class CostView implements Component {
     private readonly done: () => void,
     private readonly reload: () => Promise<CostReport>,
   ) {
-    this.#stack = [{ page: rootPage(report), selected: 0, offset: 0 }];
+    this.#stack = [{ key: `page-${this.#pageSequence++}`, page: rootPage(report), selected: 0, offset: 0 }];
   }
 
   get #frame(): Frame {
@@ -86,12 +96,12 @@ class CostView implements Component {
       frame.selected = Math.max(0, last);
     } else if (matchesKey(data, "enter") || matchesKey(data, "right")) {
       const open = frame.page.rows[frame.selected]?.open;
-      if (open) this.#stack.push({ page: open(), selected: 0, offset: 0 });
+      if (open) this.#stack.push({ key: `page-${this.#pageSequence++}`, page: open(), selected: 0, offset: 0 });
     } else if (matchesKey(data, "r")) {
       this.#notice = "Refreshing…";
       this.reload().then(
         report => {
-          this.#stack = [{ page: rootPage(report), selected: 0, offset: 0 }];
+          this.#stack = [{ key: `page-${this.#pageSequence++}`, page: rootPage(report), selected: 0, offset: 0 }];
           this.#notice = undefined;
           this.tui.requestRender();
         },
@@ -101,6 +111,44 @@ class CostView implements Component {
         },
       );
     }
+  }
+
+  describe(): NativeNode {
+    const { key, page, selected } = this.#frame;
+    const buttons: (NativeNode | null)[] = [];
+    if (this.#stack.length > 1) buttons.push(actionButton("Back", "back", { keys: "left" }));
+    buttons.push(actionButton("Refresh", "refresh", { keys: "r" }), null, actionButton("Close", "close"));
+    return col([
+      ...(this.#stack.length > 1 ? [text(this.#stack.slice(1).map(frame => frame.page.title).join(" › "))] : []),
+      ...page.header.map(line => text([{ t: line, s: "muted" }])),
+      list(
+        page.rows.map((row, index) => item(`row-${index}`, {
+          label: [{ t: row.label, s: row.muted ? "dim" : undefined }],
+          detail: row.detail,
+          value: row.cost === undefined ? undefined : formatCost(row.cost),
+          hint: row.open ? ["Open"] : undefined,
+        })),
+        { selected: page.rows.length ? `row-${selected}` : null, empty: page.empty, actions: { click: "activate" } },
+        key,
+      ),
+      ...(this.#notice ? [text(this.#notice)] : []),
+      actionBar(buttons),
+    ], { gap: "md" });
+  }
+
+  handleNativeEvent(event: NativeUiEvent): void {
+    if (event.type === "action") {
+      if (event.act === "close") this.done();
+      else if (event.act === "back") this.handleInput("\x1b[D");
+      else if (event.act === "refresh") this.handleInput("r");
+    } else if (event.type === "select" || event.type === "activate") {
+      if (event.key !== this.#frame.key) return;
+      const index = itemIndex(event.item, "row-");
+      if (index < 0 || index >= this.#frame.page.rows.length) return;
+      this.#frame.selected = index;
+      if (event.type === "activate") this.handleInput("\r");
+    }
+    this.tui.requestRender();
   }
 
   #rowCapacity(): number {
@@ -155,6 +203,7 @@ export default function sessionCost(pi: ExtensionAPI) {
       await ctx.ui.custom<void>(
         (tui, theme, keybindings, done) =>
           new CostView(report, tui, theme, keybindings, () => done(), () => collectReport(ctx)),
+        { overlay: true, overlayOptions: { anchor: "center", width: "90%", maxHeight: "90%" } },
       );
     },
   });

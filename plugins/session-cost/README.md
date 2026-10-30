@@ -17,6 +17,8 @@ Exit OMP completely and start it again (`omp --continue` resumes the conversatio
 
 Run `/cost` in the interactive TUI.
 
+In **Tern**, this opens a native dialog with clickable rows, full-width details, and **Back**, **Refresh**, and **Close** buttons. In other terminals, the same dialog uses keyboard navigation. No terminal-row `fallback` is needed in Tern.
+
 | Key | Action |
 | --- | --- |
 | `↑` `↓` / `j` `k`, `PgUp` `PgDn`, `Home` `End` | Move |
@@ -54,3 +56,5 @@ Main-chat advisors are a separate category. Advisors reviewing a subagent count 
 `bun test plugins/session-cost` covers whole-transcript versus window totals across branches, compaction, and reset boundaries; no double counting of task-result usage; nested trees; advisor placement; async attribution; malformed JSONL; and missing usage fields.
 
 Manually verified on OMP 18.14.0 against a real session with one async subagent: Subagents showed $0.0973, matching the status line's `(+0.10)`, and the turn that spawned it included that cost. Navigation and the headless summary were exercised through a throwaway extension driving the component; the colored terminal rendering was not inspected.
+
+Native dialog support was exercised inside OMP 18.14.0 without model inference: the component emitted semantic nodes rather than fallback rows, and activation, Back, Refresh, Close, stale-page event rejection, and the ANSI render path passed. The actual Tern window appearance was not inspected.
