@@ -22,6 +22,8 @@ import {
   type DiffPart,
   extractRewrite,
   firstPassPrompt,
+  INTENSITIES,
+  INTENSITY_HINTS,
   type Intensity,
   nextPassPrompt,
   type PolishConfig,
@@ -48,7 +50,11 @@ async function loadConfig(cwd: string): Promise<{ config: PolishConfig; warnings
 interface Candidate {
   text: string;
   edited: boolean;
+  intensity: Intensity;
 }
+
+/** Revise the current candidate with notes, or rewrite the original draft at a (new) level. */
+type PassRequest = { notes: string } | { intensity: Intensity };
 
 /** One polishing run: the draft, every candidate so far, and the side-turn lineage for follow-up passes. */
 class PolishRun {
@@ -60,7 +66,8 @@ class PolishRun {
   constructor(
     private readonly ctx: ExtensionContext,
     readonly draft: string,
-    readonly intensity: Intensity,
+    /** Level of the pass running or last started; shown while working and used to retry a failed first pass. */
+    public intensity: Intensity,
     private readonly lifetime: AbortSignal,
   ) {}
 
@@ -68,14 +75,22 @@ class PolishRun {
     return this.candidates[this.index];
   }
 
-  add(textValue: string, edited: boolean): void {
-    this.candidates.push({ text: textValue, edited });
+  add(candidate: Candidate): void {
+    this.candidates.push(candidate);
     this.index = this.candidates.length - 1;
   }
 
-  async pass(notes: string, signal: AbortSignal): Promise<void> {
+  async pass(request: PassRequest, signal: AbortSignal): Promise<void> {
     const current = this.current;
-    const promptText = current ? nextPassPrompt(current.text, notes, this.intensity) : firstPassPrompt(this.draft, this.intensity);
+    let promptText: string;
+    if ("intensity" in request || !current) {
+      this.intensity = "intensity" in request ? request.intensity : this.intensity;
+      promptText = firstPassPrompt(this.draft, this.intensity);
+    } else {
+      this.intensity = current.intensity;
+      promptText = nextPassPrompt(current.text, request.notes, this.intensity);
+    }
+    const intensity = this.intensity;
     const timeout = AbortSignal.timeout(PASS_TIMEOUT_MS);
     try {
       const { replyText, assistantMessage } = await this.ctx.runEphemeralTurn!({
@@ -94,7 +109,7 @@ class PolishRun {
       const extracted = extractRewrite(replyText);
       if (!extracted.ok) throw new Error(failureReason(extracted.reason, assistantMessage));
       this.#history.push({ role: "user", content: promptText, timestamp: Date.now() }, assistantMessage);
-      this.add(extracted.text, false);
+      this.add({ text: extracted.text, edited: false, intensity });
     } catch (error) {
       // A failed or cancelled request must not anchor the next attempt to its provider lineage.
       this.#conversationKey = crypto.randomUUID();
@@ -132,18 +147,18 @@ class PolishView implements Component {
     private readonly theme: Theme,
     private readonly keybindings: KeybindingsManager,
     private readonly done: (outcome: Outcome) => void,
-    notes: string | undefined,
+    pending: PassRequest | undefined,
   ) {
-    if (notes !== undefined) this.#start(notes);
+    if (pending) this.#start(pending);
   }
 
-  #start(notes: string): void {
+  #start(request: PassRequest): void {
     const controller = new AbortController();
     this.#working = controller;
     this.#notice = undefined;
     this.#startedAt = Date.now();
     this.#timer = setInterval(() => this.tui.requestRender(), 100);
-    this.run.pass(notes, controller.signal).then(
+    this.run.pass(request, controller.signal).then(
       () => {
         this.#view = "rewrite";
         this.#scroll = 0;
@@ -184,6 +199,7 @@ class PolishView implements Component {
     else if (matchesKey(data, "tab") || matchesKey(data, "v")) this.#act("cycle");
     else if (matchesKey(data, "d")) this.#act("view:changes");
     else if (matchesKey(data, "o")) this.#act("view:original");
+    else if (/^[1-9]$/.test(data) && INTENSITIES[Number(data) - 1]) this.#act(`style:${INTENSITIES[Number(data) - 1]}`);
     else if (matchesKey(data, "up") || matchesKey(data, "k")) this.#scroll = Math.max(0, this.#scroll - 1);
     else if (matchesKey(data, "down") || matchesKey(data, "j")) this.#scroll++;
     else if (matchesKey(data, "pageUp")) this.#scroll = Math.max(0, this.#scroll - this.#bodyRows());
@@ -205,9 +221,10 @@ class PolishView implements Component {
     }
     const current = this.run.current;
     if (action === "cancel") this.#close("cancel");
+    else if (action.startsWith("style:")) this.#start({ intensity: action.slice(6) as Intensity });
     else if (!current) {
       // Only the first pass failed: retry it in place.
-      if (action === "refine" || action === "retry") this.#start("");
+      if (action === "refine" || action === "retry") this.#start({ notes: "" });
     } else if (action === "accept") this.#close("accept");
     else if (action === "edit") this.#close("edit");
     else if (action === "refine") this.#close("refine");
@@ -234,7 +251,7 @@ class PolishView implements Component {
   }
 
   #meta(candidate: Candidate | undefined): string {
-    const parts: string[] = [this.run.intensity];
+    const parts: string[] = [this.#working || !candidate ? this.run.intensity : candidate.intensity];
     if (candidate && this.run.candidates.length > 1) parts.push(`${this.run.index + 1}/${this.run.candidates.length}`);
     if (candidate?.edited) parts.push("edited");
     if (candidate && sameText(candidate.text, this.run.draft)) parts.push("already good");
@@ -242,7 +259,7 @@ class PolishView implements Component {
   }
 
   #bodyRows(): number {
-    return Math.max(4, Math.floor(this.tui.terminal.rows * 0.9) - 8);
+    return Math.max(4, Math.floor(this.tui.terminal.rows * 0.9) - 9);
   }
 
   /** Styled physical lines of the active view, wrapped to `width`. */
@@ -290,7 +307,9 @@ class PolishView implements Component {
         "",
         ...wrapTextWithAnsi(theme.fg("error", (this.#notice ?? "No rewrite.").replace(CONTROL, "")), width),
         "",
-        theme.fg("dim", "r retry · esc close"),
+        truncateToWidth(this.#styleLine(this.run.intensity), width),
+        "",
+        theme.fg("dim", "r retry · 1–3 retry in that style · esc close"),
       );
       return lines;
     }
@@ -303,6 +322,7 @@ class PolishView implements Component {
         }).join(" "),
         width,
       ),
+      truncateToWidth(this.#styleLine(candidate.intensity), width),
       "",
     );
     const body = this.#bodyLines(candidate, Math.max(10, width));
@@ -316,11 +336,31 @@ class PolishView implements Component {
       truncateToWidth(
         this.#notice
           ? theme.fg("warning", this.#notice.replace(CONTROL, ""))
-          : theme.fg("dim", `${position}enter use · e edit · r another pass · tab view${history} · esc keep original`),
+          : theme.fg("dim", `${position}enter use · e edit · r another pass · 1–3 restyle · tab view${history} · esc keep original`),
         width,
       ),
     );
     return lines;
+  }
+
+  /** Levels with their number keys; `active` is the level of what is on screen. */
+  #styleLine(active: Intensity): string {
+    const { theme } = this;
+    const levels = INTENSITIES.map((level, index) =>
+      level === active ? theme.bold(theme.fg("accent", `[${index + 1} ${level}]`)) : theme.fg("dim", ` ${index + 1} ${level} `),
+    );
+    return `${theme.fg("dim", "Style ")}${levels.join(" ")}${theme.fg("dim", `  ${INTENSITY_HINTS[active]}`)}`;
+  }
+
+  #styleButtons(active: Intensity): NativeNode[] {
+    return INTENSITIES.map((level, index) =>
+      actionButton(level, `style:${level}`, {
+        key: `style-${level}`,
+        keys: String(index + 1) as KeyId,
+        title: `Rewrite the original in the ${level} style: ${INTENSITY_HINTS[level]}`,
+        tone: level === active ? "accent" : undefined,
+      }),
+    );
   }
 
   describe(): NativeNode {
@@ -334,19 +374,28 @@ class PolishView implements Component {
         [
           head,
           text([span((this.#notice ?? "No rewrite.").replace(CONTROL, ""), "error")]),
-          actionBar([actionButton("Retry", "retry", { keys: "r", tone: "accent" }), null, actionButton("Close", "cancel", { keys: "escape" })]),
+          actionBar([
+            actionButton("Retry", "retry", { keys: "r", tone: "accent" }),
+            ...this.#styleButtons(this.run.intensity),
+            null,
+            actionButton("Close", "cancel", { keys: "escape" }),
+          ]),
         ],
         { gap: "md" },
       );
     }
     const changes = changeCount(this.#diffParts(candidate));
     const views = actionBar(
-      VIEWS.map(view =>
-        actionButton(view === "changes" ? `${VIEW_LABELS[view]} (${changes})` : VIEW_LABELS[view], `view:${view}`, {
-          key: `view-${view}`,
-          tone: view === this.#view ? "accent" : undefined,
-        }),
-      ),
+      [
+        ...VIEWS.map(view =>
+          actionButton(view === "changes" ? `${VIEW_LABELS[view]} (${changes})` : VIEW_LABELS[view], `view:${view}`, {
+            key: `view-${view}`,
+            tone: view === this.#view ? "accent" : undefined,
+          }),
+        ),
+        null,
+        ...this.#styleButtons(candidate.intensity),
+      ],
       "views",
     );
     const body =
@@ -408,12 +457,21 @@ export default async function promptPolish(pi: ExtensionAPI) {
       if (warnings.length) ctx.ui.notify(`prompt-polish settings: ${warnings.join("; ")}; using defaults.`, "warning");
       // What the editor holds now; accepting replaces it only if it is still unchanged.
       const expectedEditor = ctx.ui.getEditorText();
-      const run = new PolishRun(ctx, draft, config.intensity, lifetime.signal);
-      let notes: string | undefined = "";
+      let intensity: Intensity;
+      if (config.intensity === "ask") {
+        const labels = INTENSITIES.map(level => `${level} — ${INTENSITY_HINTS[level]}`);
+        const choice = await ctx.ui.select("Polish style", labels);
+        if (choice === undefined || !labels.includes(choice)) return;
+        intensity = INTENSITIES[labels.indexOf(choice)]!;
+      } else {
+        intensity = config.intensity;
+      }
+      const run = new PolishRun(ctx, draft, intensity, lifetime.signal);
+      let request: PassRequest | undefined = { intensity };
       for (;;) {
         if (lifetime.signal.aborted) return;
-        const pending = notes;
-        notes = undefined;
+        const pending = request;
+        request = undefined;
         const outcome = await ctx.ui.custom<Outcome>(
           (tui, theme, keybindings, done) => new PolishView(run, tui, theme, keybindings, done, pending),
           { overlay: true, overlayOptions: { anchor: "center", width: "90%", maxHeight: "90%" } },
@@ -422,11 +480,14 @@ export default async function promptPolish(pi: ExtensionAPI) {
         if (outcome === "cancel" || !candidate) return;
         if (outcome === "edit") {
           const edited = await ctx.ui.editor("Edit rewrite", candidate.text);
-          if (edited !== undefined && edited.trim() && edited !== candidate.text) run.add(edited, true);
+          if (edited !== undefined && edited.trim() && edited !== candidate.text) {
+            run.add({ text: edited, edited: true, intensity: candidate.intensity });
+          }
           continue;
         }
         if (outcome === "refine") {
-          notes = await ctx.ui.input("Another pass", "What should change? Leave empty for a different take.");
+          const notes = await ctx.ui.input("Another pass", "What should change? Leave empty for a different take.");
+          if (notes !== undefined) request = { notes };
           continue;
         }
         const current = ctx.ui.getEditorText();

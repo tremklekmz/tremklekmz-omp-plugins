@@ -1,20 +1,30 @@
 export const INTENSITIES = ["light", "standard", "strong"] as const;
 export type Intensity = (typeof INTENSITIES)[number];
+/** `ask` picks the level in a dialog before every polish. */
+export type IntensitySetting = Intensity | "ask";
+const INTENSITY_SETTINGS: readonly IntensitySetting[] = [...INTENSITIES, "ask"];
+
+/** One-line summaries shown wherever the user picks a level. */
+export const INTENSITY_HINTS: Record<Intensity, string> = {
+	light: "wording and grammar only",
+	standard: "clarify and organize",
+	strong: "build out a full prompt",
+};
 
 export const DEFAULT_SHORTCUT = "alt+e";
 
 export interface PolishConfig {
-	intensity: Intensity;
+	intensity: IntensitySetting;
 	shortcut: string;
 }
 
 /** Unknown or malformed values fall back to defaults; `warnings` names each one. */
 export function readConfig(raw: Record<string, unknown>): { config: PolishConfig; warnings: string[] } {
 	const warnings: string[] = [];
-	let intensity: Intensity = "standard";
+	let intensity: IntensitySetting = "standard";
 	if (raw.intensity !== undefined) {
-		if (INTENSITIES.includes(raw.intensity as Intensity)) intensity = raw.intensity as Intensity;
-		else warnings.push(`intensity ${JSON.stringify(raw.intensity)} is not one of ${INTENSITIES.join(", ")}`);
+		if (INTENSITY_SETTINGS.includes(raw.intensity as IntensitySetting)) intensity = raw.intensity as IntensitySetting;
+		else warnings.push(`intensity ${JSON.stringify(raw.intensity)} is not one of ${INTENSITY_SETTINGS.join(", ")}`);
 	}
 	let shortcut = DEFAULT_SHORTCUT;
 	if (raw.shortcut !== undefined) {
@@ -64,7 +74,9 @@ ${candidate}
 </current>
 ${request}
 
-Same rules and level (${intensity}) as before; my notes override them where they conflict. Reply with only the rewritten prompt inside <rewrite></rewrite> tags.`;
+Same rules as before; my notes override them where they conflict. Level — ${LEVELS[intensity]}
+
+Reply with only the rewritten prompt inside <rewrite></rewrite> tags.`;
 }
 
 export type Extraction = { ok: true; text: string } | { ok: false; reason: string };

@@ -4,6 +4,13 @@ Release history for `prompt-polish`. Versions match this plugin's `package.json`
 
 ## Unreleased
 
+## 1.1.0
+
+### Added
+
+- Keys `1`–`3` (or the style buttons in Tern) rewrite the original draft again in the `light`, `standard`, or `strong` style without leaving the review; each candidate remembers its style.
+- `intensity: ask` picks the style in a dialog before every polish.
+
 ## 1.0.0
 
 ### Added

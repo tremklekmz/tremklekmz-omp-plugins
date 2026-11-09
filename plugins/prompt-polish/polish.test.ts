@@ -20,6 +20,10 @@ describe("readConfig", () => {
 		});
 	});
 
+	it("accepts ask as an intensity setting", () => {
+		expect(readConfig({ intensity: "ask" })).toEqual({ config: { intensity: "ask", shortcut: DEFAULT_SHORTCUT }, warnings: [] });
+	});
+
 	it.each([
 		[{ intensity: "max" }, "intensity"],
 		[{ intensity: 2 }, "intensity"],

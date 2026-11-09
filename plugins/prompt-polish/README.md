@@ -15,13 +15,14 @@ Exit OMP completely and start it again (`omp --continue` resumes the conversatio
 
 ## Usage
 
-Type a draft and press **Alt+E**, or run `/polish <draft>`. A dialog shows a spinner while the model rewrites (**Esc** cancels; nothing changes), then the review:
+Type a draft and press **Alt+E**, or run `/polish <draft>`. With `intensity` set to `ask`, a dialog first asks for the style. A dialog then shows a spinner while the model rewrites (**Esc** cancels; nothing changes), then the review:
 
 | Key | Action |
 | --- | --- |
 | `Enter` / `a` | Use the rewrite: it replaces the editor text, unsent |
 | `e` | Edit the rewrite first |
 | `r` | Another pass: type notes ("shorter", "in English") or leave empty for a different take |
+| `1` `2` `3` | Rewrite the original draft again in the `light`, `standard`, or `strong` style; the active style is highlighted under the views |
 | `Tab` / `v`, `d`, `o` | Cycle views; jump to **Changes** (word diff) or **Original** |
 | `b` / `f` | Previous / next candidate after another pass or an edit |
 | `↑` `↓` / `j` `k`, `PgUp` `PgDn`, `Home` `End` | Scroll |
@@ -29,7 +30,7 @@ Type a draft and press **Alt+E**, or run `/polish <draft>`. A dialog shows a spi
 
 `/polish-undo` puts back the editor text the last accepted rewrite replaced (same OMP process).
 
-In **Tern**, the same dialog is native, with view and action buttons.
+In **Tern**, the same dialog is native, with view, style, and action buttons.
 
 The model may return the draft unchanged; the header then says **already good**.
 
@@ -42,10 +43,10 @@ omp plugin config set prompt-polish shortcut ctrl+alt+p
 
 | Setting | Default | Values |
 | --- | --- | --- |
-| `intensity` | `standard` | `light` fixes wording only; `standard` clarifies and organizes; `strong` builds a rough idea into a full prompt with specifics, edge cases, and verification |
+| `intensity` | `standard` | `light` fixes wording only; `standard` clarifies and organizes; `strong` builds a rough idea into a full prompt with specifics, edge cases, and verification; `ask` picks one of these in a dialog before every polish |
 | `shortcut` | `alt+e` | Any free key chord. Read at startup: restart OMP after changing it. A taken chord produces a warning at session start; `/polish` still works |
 
-`intensity` is read on every run, so it applies without a restart. Invalid values fall back to the defaults with a warning.
+`intensity` is read on every run, so it applies without a restart; inside the review, `1`–`3` switch it for that one polish. Invalid values fall back to the defaults with a warning.
 
 Every level keeps your goal and request type (a question stays a question), hedges, constraints, length limits, tone, language, and literal names, paths, code, and URLs. The instruction is in [`polish.ts`](polish.ts); it is a set of rules for the model, not a guarantee, so read the rewrite before using it.
 

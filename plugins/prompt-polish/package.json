@@ -1,6 +1,6 @@
 {
   "name": "prompt-polish",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Rewrite a rough draft into a clearer prompt and review it before it reaches the editor.",
   "type": "module",
   "omp": {
@@ -8,9 +8,9 @@
     "settings": {
       "intensity": {
         "type": "enum",
-        "values": ["light", "standard", "strong"],
+        "values": ["light", "standard", "strong", "ask"],
         "default": "standard",
-        "description": "How far the rewrite may go: wording only, clarify and organize, or build the idea out."
+        "description": "How far the rewrite may go: wording only, clarify and organize, or build the idea out; ask picks one before every polish."
       },
       "shortcut": {
         "type": "string",
