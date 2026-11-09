@@ -1,0 +1,22 @@
+{
+  "name": "prompt-polish",
+  "version": "1.0.0",
+  "description": "Rewrite a rough draft into a clearer prompt and review it before it reaches the editor.",
+  "type": "module",
+  "omp": {
+    "extensions": ["./index.ts"],
+    "settings": {
+      "intensity": {
+        "type": "enum",
+        "values": ["light", "standard", "strong"],
+        "default": "standard",
+        "description": "How far the rewrite may go: wording only, clarify and organize, or build the idea out."
+      },
+      "shortcut": {
+        "type": "string",
+        "default": "alt+e",
+        "description": "Key chord that polishes the editor draft. Takes effect after an OMP restart."
+      }
+    }
+  }
+}

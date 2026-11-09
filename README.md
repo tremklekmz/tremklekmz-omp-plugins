@@ -30,6 +30,7 @@ The same full restart is required after `plugin link`; linking does not activate
 | --- | --- | --- |
 | [subagent-effort-guard](plugins/subagent-effort-guard/README.md) | Approve reasoning escalations using the child's actual resolved effort and the immediate parent's live effort. Defaults to `auto` with a `parent` autonomous limit. | [Releases](plugins/subagent-effort-guard/CHANGELOG.md) |
 | [session-cost](plugins/session-cost/README.md) | `/cost` breaks session spend down by main chat, turns, model calls, subagents (async and nested included), and advisors. | [Releases](plugins/session-cost/CHANGELOG.md) |
+| [prompt-polish](plugins/prompt-polish/README.md) | Alt+E or `/polish` rewrites the editor draft into a clearer prompt through a side turn; review the word diff, iterate with notes, accept without sending. | [Releases](plugins/prompt-polish/CHANGELOG.md) |
 
 ## Configuration
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository is an OMP plugin marketplace, not a standalone application or OMP fork. `subagent-effort-guard` gates actual resolved subagent reasoning effort before provider dispatch; `session-cost` adds `/cost`, a per-turn, per-call, per-agent spend breakdown read from session transcripts. Plugins run directly in a normal OMP binary.
+This repository is an OMP plugin marketplace, not a standalone application or OMP fork. `subagent-effort-guard` gates actual resolved subagent reasoning effort before provider dispatch; `session-cost` adds `/cost`, a per-turn, per-call, per-agent spend breakdown read from session transcripts; `prompt-polish` rewrites the editor draft into a clearer prompt for review before use. Plugins run directly in a normal OMP binary.
 
 ## Architecture & Data Flow
 
@@ -12,12 +12,14 @@ This repository is an OMP plugin marketplace, not a standalone application or OM
 - Module-level agent-ID bindings expose live effort getters and ancestor UI. Each extension factory owns its child's decision state, enforced ceiling, pending promise, and cancellation controller. A shared UI promise queue serializes approvals; do not introduce a shared “current child” or snapshot the root's effort.
 - OMP injects the extension API and event context. Use those session/settings/UI APIs; do not mutate provider payloads or replace task/model selection.
 - `plugins/session-cost/report.ts` (pure aggregation over transcript entries), `transcripts.ts` (artifact-directory scan and tolerant JSONL parsing), and `view.ts` (pure page model) stay host-free; `index.ts` registers `/cost`, reads the session manager and agent registry, and renders the navigable component.
+- `plugins/prompt-polish/polish.ts` (settings validation, side-turn prompt text, rewrite extraction, word diff) stays host-free; `index.ts` registers the shortcut and `/polish`/`/polish-undo`, runs passes through `ctx.runEphemeralTurn` (conversation-aware, never appended to history), and renders the review overlay (ANSI and Tern native). Accepting only calls `setEditorText`; it never submits.
 
 ## Key Directories
 
 - `plugins/`: independently versioned plugins, each with its manifest, source, README, and changelog.
 - `plugins/subagent-effort-guard/`: runtime adapter, pure policy, and colocated policy tests.
 - `plugins/session-cost/`: `/cost` adapter, pure report/view modules, and colocated report tests.
+- `plugins/prompt-polish/`: shortcut/command adapter and review overlay, pure prompt/diff module, and colocated tests.
 - `.omp-plugin/`: marketplace catalog; relative plugin sources resolve beneath `plugins/`.
 
 ## Development Commands

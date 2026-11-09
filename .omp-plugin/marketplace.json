@@ -24,6 +24,14 @@
       "source": "./session-cost",
       "category": "development",
       "keywords": ["extension", "cost", "usage", "subagents"]
+    },
+    {
+      "name": "prompt-polish",
+      "description": "Rewrite a rough draft into a clearer prompt and review the diff before it reaches the editor",
+      "version": "1.0.0",
+      "source": "./prompt-polish",
+      "category": "development",
+      "keywords": ["extension", "prompt", "rewrite", "editor"]
     }
   ]
 }
